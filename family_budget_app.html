@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1a1a2e">
+<title>Budget Rombhot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+    --cash: #7c3aed;
+    --cash-light: #ede9fe;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --nav-height: 70px;
+    --header-height: 60px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: var(--nav-height);
+    overflow-x: hidden;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: var(--header-height);
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .month-nav { display: flex; align-items: center; gap: 10px; }
+  .header .month-nav button {
+    background: rgba(255,255,255,0.2);
+    border: none; color: white;
+    width: 32px; height: 32px; border-radius: 50%;
+    cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header .month-label { font-size: 14px; font-weight: 600; min-width: 100px; text-align: center; }
+
+  /* ---- BOTTOM NAV ---- */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; border-top: 1px solid var(--border);
+    display: flex; height: var(--nav-height);
+    z-index: 200; box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    cursor: pointer; color: var(--muted); font-size: 11px; font-weight: 500;
+    border: none; background: none; padding: 8px 0; transition: color 0.2s;
+  }
+  .nav-item.active { color: var(--primary); }
+  .nav-item svg { width: 24px; height: 24px; }
+
+  /* ---- PAGES ---- */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ---- CARDS ---- */
+  .card {
+    background: var(--card); border-radius: 16px;
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+  }
+
+  /* ---- BILAN CARD ---- */
+  .bilan-card {
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: white; border-radius: 20px; padding: 20px; margin-bottom: 16px;
+  }
+  .bilan-card .label { font-size: 13px; opacity: 0.8; margin-bottom: 4px; }
+  .bilan-card .solde { font-size: 36px; font-weight: 800; margin-bottom: 16px; }
+  .bilan-card .row { display: flex; justify-content: space-between; }
+  .bilan-card .item { text-align: center; flex: 1; }
+  .bilan-card .item .val { font-size: 18px; font-weight: 700; }
+  .bilan-card .item .lbl { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  .bilan-card .divider { width: 1px; background: rgba(255,255,255,0.25); margin: 0 8px; }
+  .bilan-card.positif { background: linear-gradient(135deg, #15803d, #16a34a); }
+  .bilan-card.negatif { background: linear-gradient(135deg, #b91c1c, #ef4444); }
+
+  /* ---- ENVELOPPE ESPECES CARD ---- */
+  .cash-card {
+    background: linear-gradient(135deg, #5b21b6, #7c3aed);
+    color: white; border-radius: 20px; padding: 20px; margin-bottom: 16px;
+  }
+  .cash-card .cash-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .cash-card .cash-title { font-size: 13px; opacity: 0.8; }
+  .cash-card .cash-total { font-size: 26px; font-weight: 800; margin-top: 2px; }
+  .cash-card .cash-badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 700;
+  }
+  .cash-progress-bar { height: 10px; background: rgba(255,255,255,0.25); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+  .cash-progress-fill { height: 100%; background: white; border-radius: 99px; transition: width 0.5s ease; }
+  .cash-row { display: flex; justify-content: space-between; }
+  .cash-row .cash-item { text-align: center; flex: 1; }
+  .cash-row .cash-item .cv { font-size: 16px; font-weight: 700; }
+  .cash-row .cash-item .cl { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+  .cash-row .cash-div { width: 1px; background: rgba(255,255,255,0.25); margin: 0 6px; }
+  .no-cash { text-align: center; padding: 8px 0; font-size: 14px; opacity: 0.8; }
+
+  /* ---- PROGRESS BAR ---- */
+  .progress-row { margin-bottom: 10px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .progress-name { font-size: 14px; font-weight: 500; }
+  .progress-amount { font-size: 14px; font-weight: 600; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+
+  /* ---- FORM ---- */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 8px; display: block; }
+  .form-input {
+    width: 100%; padding: 14px 16px; border: 2px solid var(--border);
+    border-radius: 12px; font-size: 16px; color: var(--text); background: white;
+    outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .form-input:focus { border-color: var(--primary); }
+  .amount-input { font-size: 28px; font-weight: 700; text-align: center; padding: 20px; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cat-btn {
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 6px; text-align: center; cursor: pointer;
+    font-size: 12px; font-weight: 500; background: white; color: var(--text);
+    transition: all 0.15s; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; -webkit-appearance: none; touch-action: manipulation;
+  }
+  .cat-btn .icon { font-size: 20px; }
+  .cat-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+  .type-toggle { display: flex; gap: 6px; margin-bottom: 20px; }
+  .type-btn {
+    flex: 1; padding: 10px 6px; border: 2px solid var(--border);
+    border-radius: 12px; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: white; color: var(--muted);
+    transition: all 0.15s; -webkit-appearance: none; text-align: center;
+  }
+  .type-btn.active-dep { border-color: var(--danger); background: var(--danger-light); color: var(--danger); }
+  .type-btn.active-rev { border-color: var(--success); background: var(--success-light); color: var(--success); }
+  .type-btn.active-dab { border-color: var(--cash); background: var(--cash-light); color: var(--cash); }
+
+  /* Cash toggle in form */
+  .cash-toggle {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border: 2px solid var(--border);
+    border-radius: 12px; cursor: pointer; margin-bottom: 16px;
+    transition: all 0.15s; background: white;
+  }
+  .cash-toggle.on { border-color: var(--cash); background: var(--cash-light); }
+  .cash-toggle-label { font-size: 15px; font-weight: 600; flex: 1; }
+  .cash-toggle.on .cash-toggle-label { color: var(--cash); }
+  .toggle-switch {
+    width: 44px; height: 24px; background: var(--border);
+    border-radius: 99px; position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .cash-toggle.on .toggle-switch { background: var(--cash); }
+  .toggle-switch::after {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; background: white;
+    border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .cash-toggle.on .toggle-switch::after { left: 23px; }
+
+  /* DAB info box */
+  .dab-info {
+    background: var(--cash-light); border-radius: 14px;
+    padding: 16px; margin-bottom: 16px; border: 1.5px solid var(--cash);
+  }
+  .dab-info p { font-size: 13px; color: var(--cash); line-height: 1.5; font-weight: 500; }
+
+  .btn-primary {
+    width: 100%; padding: 16px; background: var(--primary);
+    color: white; border: none; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s; margin-top: 8px;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-dab { background: var(--cash); }
+
+  /* ---- HISTORIQUE ---- */
+  .hist-group-label {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 12px 0 6px; margin-top: 4px;
+  }
+  .tx-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .tx-icon.dep { background: var(--danger-light); }
+  .tx-icon.rev { background: var(--success-light); }
+  .tx-icon.dab { background: var(--cash-light); }
+  .tx-icon.cash { background: var(--cash-light); }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-date { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .cash-pill {
+    display: inline-block; background: var(--cash-light); color: var(--cash);
+    border-radius: 99px; padding: 1px 7px; font-size: 11px; font-weight: 700;
+  }
+  .tx-amount { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+  .tx-amount.dep { color: var(--danger); }
+  .tx-amount.rev { color: var(--success); }
+  .tx-amount.dab { color: var(--cash); }
+  .delete-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; }
+
+  /* ---- PARAMS ---- */
+  .section-label {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 8px;
+  }
+  .param-row {
+    background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--border);
+  }
+  .param-row .name { font-size: 15px; font-weight: 500; }
+  .param-row input {
+    width: 110px; text-align: right; border: 2px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; font-size: 15px; font-weight: 600;
+    outline: none; color: var(--text); background: var(--bg); -webkit-appearance: none;
+  }
+  .param-row input:focus { border-color: var(--primary); }
+
+  /* ---- MISC ---- */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .detail-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--bg); font-size: 14px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .cat-total { font-weight: 700; }
+
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: white; padding: 12px 24px; border-radius: 99px;
+    font-size: 14px; font-weight: 500; z-index: 999; opacity: 0;
+    transition: opacity 0.3s; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 300; display: flex; align-items: flex-end;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: white; border-radius: 24px 24px 0 0;
+    padding: 20px 20px 40px; width: 100%;
+    transform: translateY(100%); transition: transform 0.3s ease;
+    max-height: 92vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:0.75;letter-spacing:0.5px;">BUDGET</div>
+    <h1>Rombhot</h1>
+  </div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">&#8249;</button>
+    <div class="month-label" id="monthLabel">--</div>
+    <button onclick="changeMonth(1)">&#8250;</button>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div id="page-resume" class="page active">
+  <div id="bilanCard" class="bilan-card">
+    <div class="label">Solde du mois</div>
+    <div class="solde" id="soldeAmount">0 €</div>
+    <div class="row">
+      <div class="item"><div class="val" id="revTotal">0 €</div><div class="lbl">Revenus</div></div>
+      <div class="divider"></div>
+      <div class="item"><div class="val" id="depTotal">0 €</div><div class="lbl">Dépenses</div></div>
+      <div class="divider"></div>
+      <div class="item"><div class="val" id="tauxEpargne">0%</div><div class="lbl">Épargné</div></div>
+    </div>
+  </div>
+
+  <!-- ENVELOPPE ESPECES -->
+  <div id="cashCard" style="display:none;"></div>
+
+  <div class="card">
+    <div class="card-title">Répartition des dépenses variables</div>
+    <div id="catBreakdown">
+      <div class="empty-state">
+        <div class="icon">📊</div>
+        <p>Ajoute des dépenses pour voir le bilan</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dépenses fixes du mois</div>
+    <div id="fixedExpensesList"></div>
+  </div>
+</div>
+
+<div id="page-historique" class="page">
+  <div class="card">
+    <div class="card-title">Transactions du mois</div>
+    <div id="histList">
+      <div class="empty-state">
+        <div class="icon">🧾</div>
+        <p>Aucune transaction ce mois-ci</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-params" class="page">
+  <div class="section-label">Revenu mensuel</div>
+  <div class="param-row">
+    <span class="name">Salaire</span>
+    <input type="number" id="p-salaire" placeholder="ex: 4000" onchange="saveParams()">
+  </div>
+
+  <div class="section-label">Dépenses fixes</div>
+  <div id="fixed-params"></div>
+
+  <button class="btn-primary" onclick="saveParams(); showToast('Paramètres sauvegardés');" style="margin-top:20px;">
+    Sauvegarder
+  </button>
+
+  <div style="margin-top:24px; text-align:center;">
+    <button onclick="if(confirm('Effacer TOUTES les données ?')) { localStorage.clear(); location.reload(); }"
+      style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;">
+      Effacer toutes les données
+    </button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-resume" onclick="showPage('resume')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    Résumé
+  </button>
+  <button class="nav-item" id="nav-add" onclick="openModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Ajouter
+  </button>
+  <button class="nav-item" id="nav-historique" onclick="showPage('historique')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Historique
+  </button>
+  <button class="nav-item" id="nav-params" onclick="showPage('params')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Réglages
+  </button>
+</nav>
+
+<!-- MODAL AJOUT -->
+<div class="modal-overlay" id="addModal" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+
+    <!-- Type selector -->
+    <div class="type-toggle">
+      <button class="type-btn active-dep" id="btn-dep" onclick="setType('depense')">Dépense</button>
+      <button class="type-btn" id="btn-dab" onclick="setType('retrait_dab')">Retrait DAB</button>
+      <button class="type-btn" id="btn-rev" onclick="setType('revenu')">Revenu</button>
+    </div>
+
+    <!-- Info box retrait DAB -->
+    <div class="dab-info" id="dabInfo" style="display:none;">
+      <p>Enregistre ton retrait espèces. Ensuite, ajoute chaque achat en espèces en cochant "Payé en espèces" pour voir ce qui reste non tracé.</p>
+    </div>
+
+    <!-- Montant -->
+    <div class="form-group">
+      <input type="number" inputmode="decimal" class="form-input amount-input"
+        id="inp-amount" placeholder="0 €" min="0" step="0.01">
+    </div>
+
+    <!-- Toggle espèces (affiché seulement pour dépense) -->
+    <div id="cashToggleWrap" style="display:none;">
+      <div class="cash-toggle" id="cashToggle" onclick="toggleCash()">
+        <span style="font-size:20px;">💵</span>
+        <span class="cash-toggle-label">Payé en espèces</span>
+        <div class="toggle-switch"></div>
+      </div>
+    </div>
+
+    <!-- Catégorie (cachée pour retrait DAB) -->
+    <div id="catSection">
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+    </div>
+
+    <!-- Note -->
+    <div class="form-group">
+      <label class="form-label" id="noteLabel">Note (optionnel)</label>
+      <input type="text" class="form-input" id="inp-note" placeholder="Ex: Lidl courses du soir">
+    </div>
+
+    <!-- Date -->
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-input" id="inp-date">
+    </div>
+
+    <button class="btn-primary" id="submitBtn" onclick="addTransaction()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// DONNÉES
+// =============================================
+
+const CATEGORIES_DEP = [
+  { id:'courses',     label:'Courses',     icon:'🛒' },
+  { id:'restaurant',  label:'Restaurant',  icon:'🍽️' },
+  { id:'transport',   label:'Transport',   icon:'🚌' },
+  { id:'sante',       label:'Santé',       icon:'💊' },
+  { id:'enfants',     label:'Enfants',     icon:'👶' },
+  { id:'electricite', label:'Électricité', icon:'⚡' },
+  { id:'eau',         label:'Eau',         icon:'💧' },
+  { id:'gaz',         label:'Gaz',         icon:'🔥' },
+  { id:'internet',    label:'Internet',    icon:'🌐' },
+  { id:'telephone',   label:'Téléphone',   icon:'📱' },
+  { id:'sport',       label:'Sport/Loisir',icon:'⚽' },
+  { id:'coiffeur',    label:'Coiffeur',    icon:'✂️' },
+  { id:'vetements',   label:'Vêtements',   icon:'👕' },
+  { id:'mutuelle',    label:'Mutuelle',    icon:'🏥' },
+  { id:'taxe',        label:'Taxe/Impôt',  icon:'📋' },
+  { id:'loyer',       label:'Loyer',       icon:'🏠' },
+  { id:'viager',      label:'Viager',      icon:'🔑' },
+  { id:'autres',      label:'Autres',      icon:'💸' },
+];
+
+const CATEGORIES_REV = [
+  { id:'salaire',     label:'Salaire',     icon:'💼' },
+  { id:'cours',       label:'Cours',       icon:'📚' },
+  { id:'allocation',  label:'Allocation',  icon:'🏛️' },
+  { id:'autres_rev',  label:'Autres',      icon:'💰' },
+];
+
+const FIXED_DEF = [
+  { id:'loyer',       label:'Loyer',            default: 831 },
+  { id:'viager',      label:'Viager',            default: 695 },
+  { id:'taxe_fonc',   label:'Taxe foncière',     default: 147 },
+  { id:'mutuelle',    label:'Mutuelle',          default: 294 },
+  { id:'electricite', label:'Électricité (moy.)',default: 47 },
+  { id:'eau',         label:'Eau (moy.)',        default: 4 },
+  { id:'gaz',         label:'Gaz (moy.)',        default: 7 },
+];
+
+// =============================================
+// ETAT
+// =============================================
+
+let currentYear  = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let currentType  = 'depense';
+let isCash       = false;
+let selectedCat  = null;
+let transactions = {};
+let params       = {};
+
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// =============================================
+// INIT
+// =============================================
+
+function init() {
+  loadData();
+  renderMonthLabel();
+  renderParamsPage();
+  renderCatGrid();
+  setTodayDate();
+  renderResumePage();
+  renderHistPage();
+}
+
+function getKey()  { return `${currentYear}-${currentMonth}`; }
+function getTxs()  { return transactions[getKey()] || []; }
+
+function loadData() {
+  try {
+    transactions = JSON.parse(localStorage.getItem('rombhot_tx')     || '{}');
+    params       = JSON.parse(localStorage.getItem('rombhot_params') || '{}');
+  } catch(e) { transactions = {}; params = {}; }
+  if (!params.salaire) params.salaire = 4000;
+  FIXED_DEF.forEach(f => { if (params[f.id] == null) params[f.id] = f.default; });
+}
+
+function saveData() {
+  localStorage.setItem('rombhot_tx',     JSON.stringify(transactions));
+  localStorage.setItem('rombhot_params', JSON.stringify(params));
+}
+
+function saveParams() {
+  params.salaire = parseFloat(document.getElementById('p-salaire').value) || 0;
+  FIXED_DEF.forEach(f => {
+    const el = document.getElementById('fp-'+f.id);
+    if (el) params[f.id] = parseFloat(el.value) || 0;
+  });
+  saveData();
+  renderResumePage();
+}
+
+// =============================================
+// NAVIGATION
+// =============================================
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name === 'resume')     renderResumePage();
+  if (name === 'historique') renderHistPage();
+}
+
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+  if (currentMonth > 11) { currentMonth = 0;  currentYear++; }
+  renderMonthLabel();
+  renderResumePage();
+  renderHistPage();
+}
+
+function renderMonthLabel() {
+  document.getElementById('monthLabel').textContent =
+    MONTHS[currentMonth].slice(0,3) + ' ' + currentYear;
+}
+
+// =============================================
+// MODAL
+// =============================================
+
+function openModal() {
+  document.getElementById('addModal').classList.add('open');
+  document.getElementById('inp-amount').focus();
+}
+
+function closeModal() {
+  document.getElementById('addModal').classList.remove('open');
+  document.getElementById('inp-amount').value = '';
+  document.getElementById('inp-note').value   = '';
+  selectedCat  = null;
+  isCash       = false;
+  currentType  = 'depense';
+  syncModalUI();
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('addModal')) closeModal();
+}
+
+function setType(t) {
+  currentType = t;
+  isCash = false;
+  selectedCat = null;
+  syncModalUI();
+}
+
+function toggleCash() {
+  isCash = !isCash;
+  syncModalUI();
+}
+
+function syncModalUI() {
+  // Type buttons
+  document.getElementById('btn-dep').className =
+    'type-btn' + (currentType==='depense'     ? ' active-dep' : '');
+  document.getElementById('btn-dab').className =
+    'type-btn' + (currentType==='retrait_dab' ? ' active-dab' : '');
+  document.getElementById('btn-rev').className =
+    'type-btn' + (currentType==='revenu'      ? ' active-rev' : '');
+
+  // DAB info
+  document.getElementById('dabInfo').style.display =
+    currentType === 'retrait_dab' ? 'block' : 'none';
+
+  // Cash toggle (only for depense)
+  const cashWrap = document.getElementById('cashToggleWrap');
+  cashWrap.style.display = currentType === 'depense' ? 'block' : 'none';
+  const ct = document.getElementById('cashToggle');
+  ct.className = 'cash-toggle' + (isCash ? ' on' : '');
+
+  // Category section (hidden for retrait_dab)
+  document.getElementById('catSection').style.display =
+    currentType === 'retrait_dab' ? 'none' : 'block';
+
+  // Note placeholder
+  document.getElementById('inp-note').placeholder =
+    currentType === 'retrait_dab'
+      ? 'Ex: retrait Boursorama 1er avril'
+      : currentType === 'depense'
+      ? 'Ex: Lidl courses du soir'
+      : 'Ex: cours anglais mars';
+
+  // Submit button
+  const btn = document.getElementById('submitBtn');
+  btn.className = 'btn-primary' + (currentType === 'retrait_dab' ? ' btn-dab' : '');
+  btn.textContent =
+    currentType === 'retrait_dab' ? 'Enregistrer le retrait DAB' : 'Enregistrer';
+
+  // Rebuild cat grid
+  renderCatGrid();
+}
+
+function renderCatGrid() {
+  const cats = currentType === 'revenu' ? CATEGORIES_REV : CATEGORIES_DEP;
+  document.getElementById('catGrid').innerHTML = cats.map(c => `
+    <button class="cat-btn ${selectedCat===c.id ? 'selected' : ''}" onclick="selectCat('${c.id}')">
+      <span class="icon">${c.icon}</span>${c.label}
+    </button>`).join('');
+}
+
+function selectCat(id) {
+  selectedCat = id;
+  renderCatGrid();
+}
+
+function setTodayDate() {
+  const t = new Date();
+  document.getElementById('inp-date').value =
+    `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+function addTransaction() {
+  const amount = parseFloat(document.getElementById('inp-amount').value);
+  const note   = document.getElementById('inp-note').value.trim();
+  const date   = document.getElementById('inp-date').value;
+
+  if (!amount || amount <= 0) { showToast('Entre un montant valide'); return; }
+  if (currentType !== 'retrait_dab' && !selectedCat) { showToast('Choisis une catégorie'); return; }
+  if (!date) { showToast('Choisis une date'); return; }
+
+  const d      = new Date(date);
+  const txYear = d.getFullYear();
+  const txMonth= d.getMonth();
+  const key    = `${txYear}-${txMonth}`;
+
+  if (!transactions[key]) transactions[key] = [];
+  transactions[key].push({
+    id:   Date.now(),
+    type: currentType,               // 'depense' | 'revenu' | 'retrait_dab'
+    cash: currentType === 'depense' ? isCash : false,
+    amount,
+    cat:  selectedCat || 'dab',
+    note,
+    date,
+  });
+  saveData();
+
+  currentYear  = txYear;
+  currentMonth = txMonth;
+  renderMonthLabel();
+
+  const msg = currentType === 'retrait_dab'
+    ? '💵 Retrait DAB ' + fmt(amount) + ' enregistré'
+    : currentType === 'depense'
+    ? '-' + fmt(amount) + ' enregistré'
+    : '+' + fmt(amount) + ' enregistré';
+
+  closeModal();
+  renderResumePage();
+  renderHistPage();
+  showToast(msg);
+}
+
+// =============================================
+// HELPERS
+// =============================================
+
+function fmt(n)      { return n.toFixed(2).replace('.',',') + ' €'; }
+function fmtShort(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k €' : n.toFixed(0)+' €'; }
+
+function getCatLabel(id) {
+  if (id === 'dab') return 'Retrait DAB';
+  const all = [...CATEGORIES_DEP, ...CATEGORIES_REV];
+  const c = all.find(x => x.id === id);
+  return c ? c.label : id;
+}
+function getCatIcon(id) {
+  if (id === 'dab') return '🏧';
+  const all = [...CATEGORIES_DEP, ...CATEGORIES_REV];
+  const c = all.find(x => x.id === id);
+  return c ? c.icon : '💸';
+}
+
+// =============================================
+// RENDER RESUME
+// =============================================
+
+function renderResumePage() {
+  const txs = getTxs();
+
+  // Séparer les types
+  const depenses    = txs.filter(t => t.type === 'depense');
+  const revenus     = txs.filter(t => t.type === 'revenu');
+  const retraitsDAB = txs.filter(t => t.type === 'retrait_dab');
+
+  const totalDAB    = retraitsDAB.reduce((s,t) => s+t.amount, 0);
+  const cashTrace   = depenses.filter(t => t.cash).reduce((s,t) => s+t.amount, 0);
+  const cashNonTrace= Math.max(0, totalDAB - cashTrace);
+
+  // Totaux bilan
+  // Revenus = salaire fixe + revenus saisis
+  const totalRev = revenus.reduce((s,t) => s+t.amount, 0) + (params.salaire || 0);
+  // Dépenses = fixes + variables non-cash + retraits DAB total (= cash tracé + non tracé)
+  const nonCashDep = depenses.filter(t => !t.cash).reduce((s,t) => s+t.amount, 0);
+  const fixedTotal = FIXED_DEF.reduce((s,f) => s+(params[f.id]||0), 0);
+  const totalDep   = fixedTotal + nonCashDep + totalDAB;
+
+  const solde = totalRev - totalDep;
+  const taux  = totalRev > 0 ? Math.round((solde/totalRev)*100) : 0;
+
+  document.getElementById('revTotal').textContent   = fmtShort(totalRev);
+  document.getElementById('depTotal').textContent   = fmtShort(totalDep);
+  document.getElementById('soldeAmount').textContent= (solde >= 0 ? '+' : '') + fmt(solde);
+  document.getElementById('tauxEpargne').textContent= taux + '%';
+
+  const card = document.getElementById('bilanCard');
+  card.className = 'bilan-card ' + (solde >= 0 ? 'positif' : 'negatif');
+
+  // --- ENVELOPPE ESPECES ---
+  const cashCardEl = document.getElementById('cashCard');
+  if (totalDAB > 0) {
+    cashCardEl.style.display = 'block';
+    const pct = totalDAB > 0 ? Math.min(100, Math.round((cashTrace/totalDAB)*100)) : 0;
+    cashCardEl.innerHTML = `
+      <div class="cash-card">
+        <div class="cash-header">
+          <div>
+            <div class="cash-title">Enveloppe espèces (DAB)</div>
+            <div class="cash-total">${fmt(totalDAB)}</div>
+          </div>
+          <div class="cash-badge">${pct}% tracé</div>
+        </div>
+        <div class="cash-progress-bar">
+          <div class="cash-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="cash-row">
+          <div class="cash-item">
+            <div class="cv">${fmt(cashTrace)}</div>
+            <div class="cl">Détaillé</div>
+          </div>
+          <div class="cash-div"></div>
+          <div class="cash-item">
+            <div class="cv" style="${cashNonTrace > 0 ? 'opacity:0.7' : ''}">${fmt(cashNonTrace)}</div>
+            <div class="cl">${cashNonTrace > 0 ? 'Non tracé' : 'Tout tracé!'}</div>
+          </div>
+          <div class="cash-div"></div>
+          <div class="cash-item">
+            <div class="cv">${retraitsDAB.length}</div>
+            <div class="cl">Retrait${retraitsDAB.length > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    cashCardEl.style.display = 'none';
+  }
+
+  // --- REPARTITION CATEGORIES (hors cash non tracé) ---
+  const depsBycat = {};
+  depenses.forEach(t => {
+    depsBycat[t.cat] = (depsBycat[t.cat]||0) + t.amount;
+  });
+  if (cashNonTrace > 0) depsBycat['__nontrace'] = cashNonTrace;
+
+  const breakdown = document.getElementById('catBreakdown');
+  const sorted = Object.entries(depsBycat).sort((a,b)=>b[1]-a[1]);
+
+  if (sorted.length === 0) {
+    breakdown.innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>Ajoute des dépenses pour voir le bilan</p></div>';
+  } else {
+    const max = sorted[0][1];
+    const colors = ['#2563eb','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2','#d97706','#64748b'];
+    breakdown.innerHTML = sorted.map(([cat, amt], i) => {
+      const pct = Math.round((amt/max)*100);
+      const label = cat === '__nontrace' ? '💵 Espèces non tracées' : getCatIcon(cat)+' '+getCatLabel(cat);
+      return `
+        <div class="progress-row">
+          <div class="progress-header">
+            <span class="progress-name">${label}</span>
+            <span class="progress-amount">${fmt(amt)}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${pct}%;background:${cat==='__nontrace'?'#94a3b8':colors[i%colors.length]};"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // --- FIXES ---
+  document.getElementById('fixedExpensesList').innerHTML =
+    FIXED_DEF.map(f => `
+      <div class="detail-row">
+        <span>${f.label}</span>
+        <span class="cat-total">${fmt(params[f.id]||0)}</span>
+      </div>`).join('');
+}
+
+// =============================================
+// RENDER HISTORIQUE
+// =============================================
+
+function renderHistPage() {
+  const txs = getTxs().slice().sort((a,b) => new Date(b.date)-new Date(a.date));
+  const el  = document.getElementById('histList');
+
+  if (txs.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">🧾</div><p>Aucune transaction ce mois-ci</p></div>';
+    return;
+  }
+
+  el.innerHTML = txs.map(t => {
+    const d       = new Date(t.date);
+    const dateStr = d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3);
+    const isDAB   = t.type === 'retrait_dab';
+    const isRev   = t.type === 'revenu';
+    const isCashTx= t.cash;
+
+    let iconClass  = isDAB ? 'dab' : isRev ? 'rev' : isCashTx ? 'cash' : 'dep';
+    let amtClass   = isDAB ? 'dab' : isRev ? 'rev' : 'dep';
+    let amtPrefix  = isDAB ? '🏧 ' : isRev ? '+' : '-';
+    let icon       = isDAB ? '🏧' : getCatIcon(t.cat);
+
+    const cashBadge= (!isDAB && !isRev && isCashTx)
+      ? '<span class="cash-pill">💵 espèces</span>' : '';
+    const typeLabel= isDAB ? 'Retrait DAB' : getCatLabel(t.cat);
+
+    return `
+      <div class="tx-item">
+        <div class="tx-icon ${iconClass}">${icon}</div>
+        <div class="tx-info">
+          <div class="tx-name">${t.note || typeLabel}</div>
+          <div class="tx-date">${dateStr} · ${typeLabel} ${cashBadge}</div>
+        </div>
+        <span class="tx-amount ${amtClass}">${amtPrefix}${fmt(t.amount)}</span>
+        <button class="delete-btn" onclick="deleteTx(${t.id})">×</button>
+      </div>`;
+  }).join('');
+}
+
+function deleteTx(id) {
+  const key = getKey();
+  transactions[key] = (transactions[key]||[]).filter(t => t.id !== id);
+  saveData();
+  renderHistPage();
+  renderResumePage();
+  showToast('Transaction supprimée');
+}
+
+// =============================================
+// PARAMS
+// =============================================
+
+function renderParamsPage() {
+  document.getElementById('p-salaire').value = params.salaire || '';
+  document.getElementById('fixed-params').innerHTML = FIXED_DEF.map(f => `
+    <div class="param-row">
+      <span class="name">${f.label}</span>
+      <input type="number" id="fp-${f.id}" value="${params[f.id]??''}" placeholder="${f.default}" onchange="saveParams()">
+    </div>`).join('');
+}
+
+// =============================================
+// TOAST
+// =============================================
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// =============================================
+// KEYBOARD
+// =============================================
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+// GO
+init();
+</script>
+</body>
+</html>

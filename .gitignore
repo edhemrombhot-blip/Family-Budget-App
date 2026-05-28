@@ -1,0 +1,11 @@
+# Clés secrètes — ne jamais committer
+.env
+.env.local
+
+# Dossier de build généré
+dist/
+
+# Divers
+node_modules/
+.DS_Store
+Thumbs.db
