@@ -299,6 +299,7 @@
   .tx-amount.rev { color: var(--success); }
   .tx-amount.dab { color: var(--cash); }
   .delete-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; }
+  .edit-btn   { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 15px; padding: 4px; opacity: 0.7; }
 
   /* ---- PARAMS ---- */
   .section-label {
@@ -631,6 +632,7 @@ let currentMonth = _after ? _now.getMonth()     : LAUNCH_MONTH;
 let currentType  = 'depense';
 let isCash       = false;
 let selectedCat  = null;
+let editingTxId  = null;
 let transactions = {};
 let params       = {};
 let isOnline     = navigator.onLine;
@@ -797,8 +799,16 @@ async function saveCustomFixedAmount(id, value) {
   if (item) item.amount = amount;
   localStorage.setItem('rombhot_custom_fixed', JSON.stringify(customFixed));
   renderResumePage();
-  if (isConfigured() && db && isOnline) {
-    db.from('fixed_expenses').update({ amount }).eq('id', id);
+  if (isConfigured() && db) {
+    if (isOnline) {
+      const { error } = await db.from('fixed_expenses').update({ amount }).eq('id', id);
+      if (error) {
+        queueOp({ action: 'update', table: 'fixed_expenses', id, data: { amount } });
+        showToast('Erreur réseau — sauvegardé localement');
+      }
+    } else {
+      queueOp({ action: 'update', table: 'fixed_expenses', id, data: { amount } });
+    }
   }
 }
 
@@ -863,6 +873,8 @@ async function syncQueuedOperations() {
         await db.from(op.table).delete().eq('id', op.id);
       } else if (op.action === 'upsert') {
         await db.from(op.table).upsert(op.data);
+      } else if (op.action === 'update') {
+        await db.from(op.table).update(op.data).eq('id', op.id);
       }
     } catch(e) {
       failed.push(op);
@@ -1019,9 +1031,11 @@ function closeModal() {
   document.getElementById('addModal').classList.remove('open');
   document.getElementById('inp-amount').value = '';
   document.getElementById('inp-note').value   = '';
-  selectedCat  = null;
-  isCash       = false;
-  currentType  = 'depense';
+  selectedCat   = null;
+  isCash        = false;
+  currentType   = 'depense';
+  editingTxId   = null;
+  document.getElementById('submitBtn').onclick = addTransaction;
   syncModalUI();
 }
 
@@ -1146,6 +1160,87 @@ async function deleteTx(id) {
       });
     } else {
       queueOp({ action:'delete', table:'transactions', id });
+    }
+  }
+}
+
+function editTx(id) {
+  const allTxs = Object.values(transactions).flat();
+  const tx = allTxs.find(t => t.id === id);
+  if (!tx) return;
+
+  editingTxId = id;
+  currentType = tx.type;
+  isCash      = tx.cash || false;
+  selectedCat = tx.type === 'retrait_dab' ? null : tx.cat;
+
+  syncModalUI();
+
+  document.getElementById('inp-amount').value = tx.amount;
+  document.getElementById('inp-note').value   = tx.note || '';
+  document.getElementById('inp-date').value   = tx.date;
+
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Modifier';
+  btn.onclick     = updateTransaction;
+
+  document.getElementById('addModal').classList.add('open');
+}
+
+async function updateTransaction() {
+  const amount = parseFloat(document.getElementById('inp-amount').value);
+  const note   = document.getElementById('inp-note').value.trim();
+  const date   = document.getElementById('inp-date').value;
+
+  if (!amount || amount <= 0) { showToast('Entre un montant valide'); return; }
+  if (currentType !== 'retrait_dab' && !selectedCat) { showToast('Choisis une catégorie'); return; }
+  if (!date) { showToast('Choisis une date'); return; }
+
+  const d       = new Date(date);
+  const txYear  = d.getFullYear();
+  const txMonth = d.getMonth();
+  const newKey  = `${txYear}-${txMonth}`;
+
+  const oldKey = Object.keys(transactions).find(k =>
+    (transactions[k] || []).some(t => t.id === editingTxId)
+  );
+  if (!oldKey) { showToast('Transaction introuvable'); return; }
+
+  const existing  = transactions[oldKey].find(t => t.id === editingTxId);
+  const updatedTx = {
+    ...existing,
+    year:  txYear,
+    month: txMonth,
+    type:  currentType,
+    cash:  currentType === 'depense' ? isCash : false,
+    amount,
+    cat:   selectedCat || 'dab',
+    note:  note || '',
+    date,
+  };
+
+  transactions[oldKey] = transactions[oldKey].filter(t => t.id !== editingTxId);
+  if (!transactions[newKey]) transactions[newKey] = [];
+  transactions[newKey].push(updatedTx);
+  updateLocalCache();
+
+  closeModal();
+  renderResumePage();
+  renderHistPage();
+  showToast('Transaction modifiée');
+
+  if (isConfigured() && db) {
+    const dbData = {
+      year: txYear, month: txMonth,
+      type: updatedTx.type, cash: updatedTx.cash,
+      amount, cat: updatedTx.cat, note: updatedTx.note, date,
+    };
+    if (isOnline) {
+      db.from('transactions').update(dbData).eq('id', editingTxId).then(({ error }) => {
+        if (error) queueOp({ action: 'update', table: 'transactions', id: editingTxId, data: dbData });
+      });
+    } else {
+      queueOp({ action: 'update', table: 'transactions', id: editingTxId, data: dbData });
     }
   }
 }
@@ -1335,6 +1430,7 @@ function renderHistPage() {
           <div class="tx-date">${dateStr} · ${typeLabel} ${cashBadge} ${userBadge}</div>
         </div>
         <span class="tx-amount ${amtClass}">${amtPrefix}${fmt(t.amount)}</span>
+        <button class="edit-btn"   onclick="editTx(${t.id})">✏</button>
         <button class="delete-btn" onclick="deleteTx(${t.id})">×</button>
       </div>`;
   }).join('');
