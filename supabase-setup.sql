@@ -31,18 +31,30 @@ create table if not exists fixed_expenses (
 );
 
 -- Accès libre (app familiale privée, pas d'auth publique)
-alter table transactions  enable row level security;
-alter table params        enable row level security;
+alter table transactions   enable row level security;
+alter table params         enable row level security;
 alter table fixed_expenses enable row level security;
+
+drop policy if exists "famille_tx"        on transactions;
+drop policy if exists "famille_params"    on params;
+drop policy if exists "famille_fixed_exp" on fixed_expenses;
 
 create policy "famille_tx"         on transactions   for all using (true) with check (true);
 create policy "famille_params"     on params         for all using (true) with check (true);
 create policy "famille_fixed_exp"  on fixed_expenses for all using (true) with check (true);
 
 -- Activer les mises à jour en temps réel (IMPORTANT pour la sync entre appareils)
-alter publication supabase_realtime add table transactions;
-alter publication supabase_realtime add table params;
-alter publication supabase_realtime add table fixed_expenses;
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='transactions') then
+    alter publication supabase_realtime add table transactions;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='params') then
+    alter publication supabase_realtime add table params;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='fixed_expenses') then
+    alter publication supabase_realtime add table fixed_expenses;
+  end if;
+end $$;
 
 -- Dépense fixe par défaut : frais d'écolage
 insert into fixed_expenses (label, amount, sort_order)
