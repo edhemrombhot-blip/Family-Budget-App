@@ -363,6 +363,54 @@
     color: var(--muted); cursor: pointer; margin-top: 8px; text-align: left;
   }
   .btn-ghost:active { background: var(--bg); }
+
+  /* ---- PHOTO FACTURE ---- */
+  .photo-btn {
+    width: 100%; padding: 14px; border: 2px dashed var(--border);
+    border-radius: 14px; background: var(--bg); color: var(--muted);
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .photo-btn:active { border-color: var(--primary); color: var(--primary); }
+  .photo-preview-wrap {
+    position: relative; border-radius: 14px; overflow: hidden;
+    border: 2px solid var(--border);
+  }
+  .photo-preview-wrap img {
+    width: 100%; max-height: 220px; object-fit: cover; display: block;
+  }
+  .photo-remove-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.55); color: white; border: none;
+    border-radius: 50%; width: 30px; height: 30px;
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .receipt-dot {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; color: var(--primary); cursor: pointer;
+    background: #eff6ff; padding: 2px 7px; border-radius: 99px;
+    font-weight: 600; vertical-align: middle; margin-left: 4px;
+  }
+  .receipt-lightbox {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.93);
+    z-index: 500; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .receipt-lightbox.open { opacity: 1; pointer-events: all; }
+  .receipt-lightbox img {
+    max-width: 96vw; max-height: 86vh; object-fit: contain;
+    border-radius: 10px;
+  }
+  .lightbox-close {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.18); color: white; border: none;
+    border-radius: 50%; width: 46px; height: 46px;
+    font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
 </style>
 </head>
 <body>
@@ -550,8 +598,28 @@
       <input type="date" class="form-input" id="inp-date">
     </div>
 
+    <div class="form-group" id="photoSection">
+      <label class="form-label">Facture (optionnel)</label>
+      <input type="file" id="receiptInput" accept="image/*" capture="environment"
+        style="display:none" onchange="handlePhotoCapture(event)">
+      <button class="photo-btn" id="photoBtn"
+        onclick="document.getElementById('receiptInput').click()">
+        <span>📷</span> Prendre en photo / Importer
+      </button>
+      <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+        <img id="receiptImg" src="" alt="Facture">
+        <button class="photo-remove-btn" onclick="removePhotoByUser()">✕</button>
+      </div>
+    </div>
+
     <button class="btn-primary" id="submitBtn" onclick="addTransaction()">Enregistrer</button>
   </div>
+</div>
+
+<!-- LIGHTBOX FACTURE -->
+<div class="receipt-lightbox" id="receiptLightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="Facture">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
 </div>
 
 <!-- TOAST -->
@@ -633,6 +701,8 @@ let currentType  = 'depense';
 let isCash       = false;
 let selectedCat  = null;
 let editingTxId  = null;
+let currentPhotoB64  = null;
+let receiptChanged   = false;
 let transactions = {};
 let params       = {};
 let isOnline     = navigator.onLine;
@@ -875,6 +945,15 @@ async function syncQueuedOperations() {
         await db.from(op.table).upsert(op.data);
       } else if (op.action === 'update') {
         await db.from(op.table).update(op.data).eq('id', op.id);
+      } else if (op.action === 'upload_receipt') {
+        const b64 = localStorage.getItem(`receipt_${op.txId}`);
+        if (b64) {
+          const url = await uploadReceiptToStorage(op.txId, b64);
+          if (url) await db.from('transactions').update({ receipt_url: url }).eq('id', op.txId);
+        }
+      } else if (op.action === 'delete_receipt') {
+        await deleteReceiptFromStorage(op.txId);
+        await db.from('transactions').update({ receipt_url: null }).eq('id', op.txId);
       }
     } catch(e) {
       failed.push(op);
@@ -1020,6 +1099,87 @@ function renderMonthLabel() {
 }
 
 // =============================================
+// PHOTO FACTURE
+// =============================================
+async function handlePhotoCapture(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.src = url;
+  await new Promise(res => { img.onload = res; });
+  const MAX = 1400;
+  let w = img.width, h = img.height;
+  if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+  else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  URL.revokeObjectURL(url);
+  currentPhotoB64 = canvas.toDataURL('image/jpeg', 0.75);
+  receiptChanged  = true;
+  document.getElementById('receiptImg').src = currentPhotoB64;
+  document.getElementById('photoPreviewWrap').style.display = 'block';
+  document.getElementById('photoBtn').style.display = 'none';
+}
+
+function removePhoto() {
+  currentPhotoB64 = null;
+  document.getElementById('receiptImg').src = '';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoBtn').style.display = 'flex';
+  document.getElementById('receiptInput').value = '';
+}
+
+function removePhotoByUser() {
+  removePhoto();
+  receiptChanged = true;
+}
+
+// base64 dataURL → Blob
+function b64ToBlob(b64) {
+  const [header, data] = b64.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+async function uploadReceiptToStorage(txId, b64) {
+  if (!isConfigured() || !db) return null;
+  try {
+    const blob = b64ToBlob(b64);
+    const path = `tx_${txId}.jpg`;
+    const { error } = await db.storage.from('receipts').upload(path, blob, {
+      contentType: 'image/jpeg', upsert: true,
+    });
+    if (error) { console.warn('Upload facture échoué:', error); return null; }
+    return db.storage.from('receipts').getPublicUrl(path).data.publicUrl;
+  } catch(e) { console.warn('Upload facture erreur:', e); return null; }
+}
+
+async function deleteReceiptFromStorage(txId) {
+  if (!isConfigured() || !db) return;
+  try { await db.storage.from('receipts').remove([`tx_${txId}.jpg`]); }
+  catch(e) { /* silent */ }
+}
+
+function viewReceipt(id, event) {
+  if (event) event.stopPropagation();
+  const allTxs = Object.values(transactions).flat();
+  const tx = allTxs.find(t => t.id === id);
+  const src = (tx && tx.receipt_url) || localStorage.getItem(`receipt_${id}`);
+  if (!src) return;
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('receiptLightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('receiptLightbox').classList.remove('open');
+}
+
+// =============================================
 // MODAL
 // =============================================
 function openModal() {
@@ -1031,11 +1191,13 @@ function closeModal() {
   document.getElementById('addModal').classList.remove('open');
   document.getElementById('inp-amount').value = '';
   document.getElementById('inp-note').value   = '';
-  selectedCat   = null;
-  isCash        = false;
-  currentType   = 'depense';
-  editingTxId   = null;
+  selectedCat    = null;
+  isCash         = false;
+  currentType    = 'depense';
+  editingTxId    = null;
+  receiptChanged = false;
   document.getElementById('submitBtn').onclick = addTransaction;
+  removePhoto();
   syncModalUI();
 }
 
@@ -1121,6 +1283,11 @@ async function addTransaction() {
   transactions[key].push(tx);
   updateLocalCache();
 
+  const photoB64Snapshot = currentPhotoB64;
+  if (photoB64Snapshot) {
+    localStorage.setItem(`receipt_${tx.id}`, photoB64Snapshot);
+  }
+
   currentYear  = txYear;
   currentMonth = txMonth;
   renderMonthLabel();
@@ -1138,8 +1305,17 @@ async function addTransaction() {
       db.from('transactions').insert(tx).then(({ error }) => {
         if (error) { queueOp({ action:'insert', table:'transactions', data: tx }); }
       });
+      if (photoB64Snapshot) {
+        uploadReceiptToStorage(tx.id, photoB64Snapshot).then(url => {
+          if (!url) return;
+          db.from('transactions').update({ receipt_url: url }).eq('id', tx.id);
+          const t = (transactions[key]||[]).find(t => t.id === tx.id);
+          if (t) { t.receipt_url = url; updateLocalCache(); renderHistPage(); }
+        });
+      }
     } else {
       queueOp({ action:'insert', table:'transactions', data: tx });
+      if (photoB64Snapshot) queueOp({ action:'upload_receipt', txId: tx.id });
       showToast('⚡ Hors ligne — sync à la reconnexion');
     }
   }
@@ -1149,6 +1325,7 @@ async function deleteTx(id) {
   const key = getKey();
   transactions[key] = (transactions[key]||[]).filter(t => t.id !== id);
   updateLocalCache();
+  localStorage.removeItem(`receipt_${id}`);
   renderHistPage();
   renderResumePage();
   showToast('Transaction supprimée');
@@ -1158,8 +1335,10 @@ async function deleteTx(id) {
       db.from('transactions').delete().eq('id', id).then(({ error }) => {
         if (error) queueOp({ action:'delete', table:'transactions', id });
       });
+      deleteReceiptFromStorage(id);
     } else {
       queueOp({ action:'delete', table:'transactions', id });
+      queueOp({ action:'delete_receipt', txId: id });
     }
   }
 }
@@ -1179,6 +1358,19 @@ function editTx(id) {
   document.getElementById('inp-amount').value = tx.amount;
   document.getElementById('inp-note').value   = tx.note || '';
   document.getElementById('inp-date').value   = tx.date;
+
+  const existingUrl   = tx.receipt_url || null;
+  const existingLocal = localStorage.getItem(`receipt_${id}`) || null;
+  const previewSrc    = existingUrl || existingLocal;
+  if (previewSrc) {
+    document.getElementById('receiptImg').src = previewSrc;
+    document.getElementById('photoPreviewWrap').style.display = 'block';
+    document.getElementById('photoBtn').style.display = 'none';
+  } else {
+    removePhoto();
+  }
+  currentPhotoB64 = null;
+  receiptChanged  = false;
 
   const btn = document.getElementById('submitBtn');
   btn.textContent = 'Modifier';
@@ -1223,6 +1415,36 @@ async function updateTransaction() {
   if (!transactions[newKey]) transactions[newKey] = [];
   transactions[newKey].push(updatedTx);
   updateLocalCache();
+
+  if (receiptChanged) {
+    if (currentPhotoB64) {
+      localStorage.setItem(`receipt_${editingTxId}`, currentPhotoB64);
+      if (isConfigured() && db) {
+        if (isOnline) {
+          const b64snap = currentPhotoB64;
+          const txIdSnap = editingTxId;
+          uploadReceiptToStorage(txIdSnap, b64snap).then(url => {
+            if (!url) return;
+            db.from('transactions').update({ receipt_url: url }).eq('id', txIdSnap);
+            const t = Object.values(transactions).flat().find(t => t.id === txIdSnap);
+            if (t) { t.receipt_url = url; updateLocalCache(); renderHistPage(); }
+          });
+        } else {
+          queueOp({ action:'upload_receipt', txId: editingTxId });
+        }
+      }
+    } else {
+      localStorage.removeItem(`receipt_${editingTxId}`);
+      if (isConfigured() && db) {
+        if (isOnline) {
+          deleteReceiptFromStorage(editingTxId);
+          db.from('transactions').update({ receipt_url: null }).eq('id', editingTxId);
+        } else {
+          queueOp({ action:'delete_receipt', txId: editingTxId });
+        }
+      }
+    }
+  }
 
   closeModal();
   renderResumePage();
@@ -1422,12 +1644,15 @@ function renderHistPage() {
     const userBadge = t.user_name
       ? `<span class="user-pill ${userClass}">${t.user_name}</span>` : '';
 
+    const receiptBadge = (t.receipt_url || localStorage.getItem(`receipt_${t.id}`))
+      ? `<span class="receipt-dot" onclick="viewReceipt(${t.id}, event)">🧾 facture</span>` : '';
+
     return `
       <div class="tx-item">
         <div class="tx-icon ${iconClass}">${icon}</div>
         <div class="tx-info">
           <div class="tx-name">${t.note || typeLabel}</div>
-          <div class="tx-date">${dateStr} · ${typeLabel} ${cashBadge} ${userBadge}</div>
+          <div class="tx-date">${dateStr} · ${typeLabel} ${cashBadge} ${userBadge} ${receiptBadge}</div>
         </div>
         <span class="tx-amount ${amtClass}">${amtPrefix}${fmt(t.amount)}</span>
         <button class="edit-btn"   onclick="editTx(${t.id})">✏</button>

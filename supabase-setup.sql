@@ -60,3 +60,30 @@ end $$;
 insert into fixed_expenses (label, amount, sort_order)
 select 'Frais d''écolage', 0, 10
 where not exists (select 1 from fixed_expenses where label = 'Frais d''écolage');
+
+-- ============================================
+-- PHOTOS DE FACTURES — Storage
+-- Ré-exécutable sans risque
+-- ============================================
+
+-- Colonne URL de la photo sur les transactions
+alter table transactions
+  add column if not exists receipt_url text default null;
+
+-- Bucket public "receipts"
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'receipts',
+  'receipts',
+  true,
+  5242880,   -- 5 Mo max par fichier
+  array['image/jpeg','image/png','image/webp']
+)
+on conflict (id) do nothing;
+
+-- Politique d'accès libre (app familiale sans auth)
+drop policy if exists "famille_receipts" on storage.objects;
+create policy "famille_receipts"
+  on storage.objects for all
+  using  (bucket_id = 'receipts')
+  with check (bucket_id = 'receipts');
