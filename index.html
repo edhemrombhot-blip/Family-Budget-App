@@ -619,8 +619,14 @@ const FIXED_DEF = [
 // ÉTAT
 // =============================================
 let currentUser  = localStorage.getItem('rombhot_user') || null;
-let currentYear  = new Date().getFullYear();
-let currentMonth = new Date().getMonth();
+
+// L'app démarre à partir de juin 2026
+const LAUNCH_YEAR  = 2026;
+const LAUNCH_MONTH = 5; // juin (0-indexé)
+const _now = new Date();
+const _after = _now.getFullYear() > LAUNCH_YEAR || (_now.getFullYear() === LAUNCH_YEAR && _now.getMonth() >= LAUNCH_MONTH);
+let currentYear  = _after ? _now.getFullYear()  : LAUNCH_YEAR;
+let currentMonth = _after ? _now.getMonth()     : LAUNCH_MONTH;
 let currentType  = 'depense';
 let isCash       = false;
 let selectedCat  = null;
@@ -916,9 +922,14 @@ function showPage(name) {
 }
 
 async function changeMonth(dir) {
-  currentMonth += dir;
-  if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
-  if (currentMonth > 11) { currentMonth = 0;  currentYear++; }
+  let newMonth = currentMonth + dir;
+  let newYear  = currentYear;
+  if (newMonth < 0)  { newMonth = 11; newYear--; }
+  if (newMonth > 11) { newMonth = 0;  newYear++; }
+  // Bloquer avant juin 2026
+  if (newYear < LAUNCH_YEAR || (newYear === LAUNCH_YEAR && newMonth < LAUNCH_MONTH)) return;
+  currentMonth = newMonth;
+  currentYear  = newYear;
   renderMonthLabel();
 
   if (isConfigured() && db && isOnline) {
