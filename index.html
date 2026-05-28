@@ -34,6 +34,8 @@
     --border: #e2e8f0;
     --nav-height: 70px;
     --header-height: 60px;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   body {
@@ -135,6 +137,11 @@
   /* ---- PAGES ---- */
   .page { display: none; padding: 16px; }
   .page.active { display: block; }
+  .page.fade-in { animation: pageFadeIn 0.18s var(--ease-out-expo) both; }
+  @keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
   /* ---- CARDS ---- */
   .card {
@@ -206,9 +213,11 @@
     border: 2px solid var(--border); border-radius: 12px;
     padding: 10px 6px; text-align: center; cursor: pointer;
     font-size: 12px; font-weight: 500; background: white; color: var(--text);
-    transition: all 0.15s; display: flex; flex-direction: column;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s, transform 0.1s;
+    display: flex; flex-direction: column;
     align-items: center; gap: 4px; -webkit-appearance: none; touch-action: manipulation;
   }
+  .cat-btn:active { transform: scale(0.94); }
   .cat-btn .icon { font-size: 20px; }
   .cat-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
 
@@ -217,7 +226,8 @@
     flex: 1; padding: 10px 6px; border: 2px solid var(--border);
     border-radius: 12px; font-size: 13px; font-weight: 600;
     cursor: pointer; background: white; color: var(--muted);
-    transition: all 0.15s; -webkit-appearance: none; text-align: center;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+    -webkit-appearance: none; text-align: center;
   }
   .type-btn.active-dep { border-color: var(--danger); background: var(--danger-light); color: var(--danger); }
   .type-btn.active-rev { border-color: var(--success); background: var(--success-light); color: var(--success); }
@@ -227,7 +237,7 @@
     display: flex; align-items: center; gap: 12px;
     padding: 14px 16px; border: 2px solid var(--border);
     border-radius: 12px; cursor: pointer; margin-bottom: 16px;
-    transition: all 0.15s; background: white;
+    transition: border-color 0.15s, background-color 0.15s; background: white;
   }
   .cash-toggle.on { border-color: var(--cash); background: var(--cash-light); }
   .cash-toggle-label { font-size: 15px; font-weight: 600; flex: 1; }
@@ -255,9 +265,10 @@
     width: 100%; padding: 16px; background: var(--primary);
     color: white; border: none; border-radius: 14px;
     font-size: 17px; font-weight: 700; cursor: pointer;
-    transition: opacity 0.2s; margin-top: 8px;
+    transition: opacity 0.15s, transform 0.12s var(--ease-out-quart);
+    margin-top: 8px;
   }
-  .btn-primary:active { opacity: 0.85; }
+  .btn-primary:active { opacity: 0.88; transform: scale(0.97); }
   .btn-dab { background: var(--cash); }
 
   /* ---- HISTORIQUE ---- */
@@ -271,6 +282,19 @@
     padding: 12px 0; border-bottom: 1px solid var(--border);
   }
   .tx-item:last-child { border-bottom: none; }
+  .tx-item.tx-enter {
+    animation: txSlideIn 0.22s var(--ease-out-expo) both;
+  }
+  @keyframes txSlideIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes valuePulse {
+    0%   { opacity: 1; }
+    30%  { opacity: 0.4; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .value-updated { animation: valuePulse 0.28s var(--ease-out-quart) both; }
   .tx-icon {
     width: 42px; height: 42px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
@@ -332,13 +356,15 @@
   .detail-row .cat-total { font-weight: 700; }
 
   .toast {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 90px; left: 50%;
+    transform: translateX(-50%) translateY(10px);
     background: #1e293b; color: white; padding: 12px 24px; border-radius: 99px;
     font-size: 14px; font-weight: 500; z-index: 999; opacity: 0;
-    transition: opacity 0.3s; white-space: nowrap; max-width: 90vw;
+    transition: opacity 0.22s var(--ease-out-expo), transform 0.22s var(--ease-out-expo);
+    white-space: nowrap; max-width: 90vw;
     overflow: hidden; text-overflow: ellipsis;
   }
-  .toast.show { opacity: 1; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* ---- MODAL ---- */
   .modal-overlay {
@@ -410,6 +436,14 @@
     border-radius: 50%; width: 46px; height: 46px;
     font-size: 22px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 </style>
 </head>
@@ -1063,9 +1097,15 @@ function setupRealtime() {
 // NAVIGATION
 // =============================================
 function showPage(name) {
+  const nextPage = document.getElementById('page-'+name);
+  if (nextPage.classList.contains('active')) return;
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
+
+  nextPage.classList.add('active', 'fade-in');
+  nextPage.addEventListener('animationend', () => nextPage.classList.remove('fade-in'), { once: true });
+
   document.getElementById('nav-'+name).classList.add('active');
   if (name === 'resume')     renderResumePage();
   if (name === 'historique') renderHistPage();
@@ -1537,10 +1577,20 @@ function renderResumePage() {
   const solde = totalRev - totalDep;
   const taux  = totalRev > 0 ? Math.round((solde/totalRev)*100) : 0;
 
-  document.getElementById('revTotal').textContent    = fmtShort(totalRev);
-  document.getElementById('depTotal').textContent    = fmtShort(totalDep);
-  document.getElementById('soldeAmount').textContent = (solde >= 0 ? '+' : '') + fmt(solde);
-  document.getElementById('tauxEpargne').textContent = taux + '%';
+  function setValueAnimated(id, text) {
+    const el = document.getElementById(id);
+    if (el.textContent !== text) {
+      el.classList.remove('value-updated');
+      void el.offsetWidth;
+      el.textContent = text;
+      el.classList.add('value-updated');
+      el.addEventListener('animationend', () => el.classList.remove('value-updated'), { once: true });
+    }
+  }
+  setValueAnimated('revTotal',    fmtShort(totalRev));
+  setValueAnimated('depTotal',    fmtShort(totalDep));
+  setValueAnimated('soldeAmount', (solde >= 0 ? '+' : '') + fmt(solde));
+  setValueAnimated('tauxEpargne', taux + '%');
   document.getElementById('bilanCard').className = 'bilan-card ' + (solde >= 0 ? 'positif' : 'negatif');
 
   // Enveloppe espèces
@@ -1624,7 +1674,7 @@ function renderHistPage() {
     return;
   }
 
-  el.innerHTML = txs.map(t => {
+  el.innerHTML = txs.map((t, i) => {
     const d        = new Date(t.date);
     const dateStr  = d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3);
     const isDAB    = t.type === 'retrait_dab';
@@ -1647,8 +1697,9 @@ function renderHistPage() {
     const receiptBadge = (t.receipt_url || localStorage.getItem(`receipt_${t.id}`))
       ? `<span class="receipt-dot" onclick="viewReceipt(${t.id}, event)">🧾 facture</span>` : '';
 
+    const delay = Math.min(i, 8) * 30;
     return `
-      <div class="tx-item">
+      <div class="tx-item tx-enter" style="animation-delay:${delay}ms">
         <div class="tx-icon ${iconClass}">${icon}</div>
         <div class="tx-info">
           <div class="tx-name">${t.note || typeLabel}</div>

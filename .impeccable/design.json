@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-28T23:00:00Z",
+  "title": "Design System: Budget Rombhot",
+  "extensions": {
+    "colorMeta": {
+      "primary":        { "role": "primary",   "displayName": "Bleu Direct",       "canonical": "#2563eb", "tonalRamp": ["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#dbeafe"] },
+      "primary-light":  { "role": "primary",   "displayName": "Bleu Clair",        "canonical": "#dbeafe", "tonalRamp": ["#1e40af","#2563eb","#60a5fa","#93c5fd","#bfdbfe","#dbeafe","#eff6ff","#f8faff"] },
+      "cash":           { "role": "secondary", "displayName": "Violet Espèces",    "canonical": "#7c3aed", "tonalRamp": ["#3b0764","#5b21b6","#7c3aed","#8b5cf6","#a78bfa","#c4b5fd","#ddd6fe","#ede9fe"] },
+      "cash-light":     { "role": "secondary", "displayName": "Violet Clair",      "canonical": "#ede9fe", "tonalRamp": ["#4c1d95","#6d28d9","#8b5cf6","#a78bfa","#c4b5fd","#ddd6fe","#ede9fe","#f5f3ff"] },
+      "dhouha":         { "role": "tertiary",  "displayName": "Rose Dhouha",       "canonical": "#db2777", "tonalRamp": ["#831843","#9d174d","#be185d","#db2777","#ec4899","#f472b6","#fbcfe8","#fce7f3"] },
+      "dhouha-light":   { "role": "tertiary",  "displayName": "Rose Clair Dhouha", "canonical": "#fce7f3", "tonalRamp": ["#9d174d","#db2777","#ec4899","#f9a8d4","#fbcfe8","#fce7f3","#fdf2f8","#fff0f7"] },
+      "danger":         { "role": "semantic",  "displayName": "Rouge Dépense",     "canonical": "#ef4444", "tonalRamp": ["#7f1d1d","#b91c1c","#dc2626","#ef4444","#f87171","#fca5a5","#fecaca","#fee2e2"] },
+      "success":        { "role": "semantic",  "displayName": "Vert Revenu",       "canonical": "#16a34a", "tonalRamp": ["#14532d","#15803d","#16a34a","#22c55e","#4ade80","#86efac","#bbf7d0","#dcfce7"] },
+      "warning":        { "role": "semantic",  "displayName": "Ambre Hors-ligne",  "canonical": "#d97706", "tonalRamp": ["#78350f","#92400e","#b45309","#d97706","#f59e0b","#fbbf24","#fde68a","#fef3c7"] },
+      "text":           { "role": "neutral",   "displayName": "Ardoise Profonde",  "canonical": "#1e293b", "tonalRamp": ["#020617","#0f172a","#1e293b","#334155","#475569","#64748b","#94a3b8","#cbd5e1"] },
+      "muted":          { "role": "neutral",   "displayName": "Ardoise Douce",     "canonical": "#64748b", "tonalRamp": ["#1e293b","#334155","#475569","#64748b","#94a3b8","#cbd5e1","#e2e8f0","#f1f5f9"] },
+      "border":         { "role": "neutral",   "displayName": "Contour",           "canonical": "#e2e8f0", "tonalRamp": ["#64748b","#94a3b8","#cbd5e1","#e2e8f0","#f1f5f9","#f8fafc","#fafafa","#ffffff"] },
+      "surface":        { "role": "neutral",   "displayName": "Fond de Surface",   "canonical": "#f0f4f8", "tonalRamp": ["#cbd5e1","#e2e8f0","#f1f5f9","#f0f4f8","#f8fafc","#fafcff","#fdfdff","#ffffff"] },
+      "card":           { "role": "neutral",   "displayName": "Fond Carte",        "canonical": "#ffffff", "tonalRamp": ["#e2e8f0","#f1f5f9","#f8fafc","#fafcff","#fdfdff","#fefefe","#ffffff","#ffffff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display — Solde", "purpose": "Montant du solde mensuel dans la carte bilan. Un seul usage par vue." },
+      "headline": { "displayName": "Headline — Header", "purpose": "Titre de l'app dans le header, valeurs héros secondaires." },
+      "title": { "displayName": "Title — Contenu", "purpose": "Noms de transactions, valeurs de paramètres, montants secondaires." },
+      "body": { "displayName": "Body — Texte courant", "purpose": "Notes, descriptions, texte libre." },
+      "label": { "displayName": "Label — Section", "purpose": "En-têtes de sections, card-titles. Toujours en majuscules." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 2px 8px rgba(0,0,0,0.06)", "purpose": "Cartes de contenu standard. Très diffuse, marque la séparation fond/carte." },
+      { "name": "nav-bottom", "value": "0 -4px 20px rgba(0,0,0,0.08)", "purpose": "Barre de navigation basse fixe. Directionnelle vers le haut." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "0.15s ease", "purpose": "Transitions d'état rapides : cat-btn, type-btn, cash-toggle, colors." },
+      { "name": "standard", "value": "0.2s ease", "purpose": "Transitions standard : focus border, nav color, btn opacity." },
+      { "name": "progress", "value": "0.4s ease", "purpose": "Barres de progression au chargement." },
+      { "name": "cash-bar", "value": "0.5s ease", "purpose": "Barre de progression espèces." },
+      { "name": "modal-overlay", "value": "0.25s", "purpose": "Fondu du fond modal." },
+      { "name": "modal-sheet", "value": "0.3s ease", "purpose": "Slide du sheet modal depuis le bas." }
+    ],
+    "breakpoints": [
+      { "name": "mobile-only", "value": "max-width: 480px", "purpose": "L'app est conçue mobile-first. Aucun breakpoint large documenté — usage desktop non prévu." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton Primaire",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale du formulaire. Pleine largeur, toujours en bas du contexte.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary { width: 100%; padding: 16px; background: #2563eb; color: #ffffff; border: none; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-btn-primary:active { opacity: 0.85; }"
+    },
+    {
+      "name": "Bouton Ghost",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Action secondaire (ex: changer d'utilisateur). Fond transparent, bordure légère.",
+      "html": "<button class=\"ds-btn-ghost\">Changer d'utilisateur</button>",
+      "css": ".ds-btn-ghost { background: none; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; width: 100%; font-size: 15px; font-weight: 600; color: #64748b; cursor: pointer; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-btn-ghost:active { background: #f0f4f8; }"
+    },
+    {
+      "name": "Carte Standard",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Conteneur de contenu général. Fond blanc, ombre subtile sur fond gris-bleu.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-title\">Section</p><p>Contenu ici</p></div>",
+      "css": ".ds-card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-card-title { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }"
+    },
+    {
+      "name": "Carte Bilan",
+      "kind": "card",
+      "refersTo": "card-hero",
+      "description": "Carte héros du solde mensuel. Gradient bleu, texte blanc, radius 20px.",
+      "html": "<div class=\"ds-bilan-card\"><p class=\"ds-bilan-label\">Solde du mois</p><p class=\"ds-bilan-solde\">+1 250 €</p></div>",
+      "css": ".ds-bilan-card { background: linear-gradient(135deg, #1e40af, #2563eb); color: #ffffff; border-radius: 20px; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-bilan-label { font-size: 13px; opacity: 0.8; margin-bottom: 4px; } .ds-bilan-solde { font-size: 36px; font-weight: 800; line-height: 1.1; }"
+    },
+    {
+      "name": "Champ de Saisie",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Input standard du formulaire. Bordure 2px, focus bleu, font-size 16px pour éviter le zoom iOS.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Note (optionnel)\" />",
+      "css": ".ds-input { width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; color: #1e293b; background: #ffffff; outline: none; transition: border-color 0.2s; -webkit-appearance: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-input:focus { border-color: #2563eb; }"
+    },
+    {
+      "name": "Navigation Basse",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Barre fixe en bas. 4 items. Inactif: muted. Actif: bleu primaire.",
+      "html": "<nav class=\"ds-bottom-nav\"><button class=\"ds-nav-item ds-nav-active\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9\"/></svg><span>Résumé</span></button><button class=\"ds-nav-item\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"16\"/><line x1=\"8\" y1=\"12\" x2=\"16\" y2=\"12\"/></svg><span>Ajouter</span></button></nav>",
+      "css": ".ds-bottom-nav { display: flex; background: #ffffff; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); height: 70px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; color: #64748b; font-size: 11px; font-weight: 500; border: none; background: none; padding: 8px 0; transition: color 0.2s; } .ds-nav-active { color: #2563eb; }"
+    },
+    {
+      "name": "Transaction",
+      "kind": "custom",
+      "refersTo": "tx-item",
+      "description": "Item d'historique. Icône tintée sémantique 42px, nom tronqué, montant coloré.",
+      "html": "<div class=\"ds-tx\"><div class=\"ds-tx-icon ds-tx-dep\">🛒</div><div class=\"ds-tx-info\"><p class=\"ds-tx-name\">Lidl</p><p class=\"ds-tx-date\">12 mai</p></div><span class=\"ds-tx-amount ds-tx-dep\">-45 €</span></div>",
+      "css": ".ds-tx { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-tx-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; } .ds-tx-icon.ds-tx-dep { background: #fee2e2; } .ds-tx-icon.ds-tx-rev { background: #dcfce7; } .ds-tx-icon.ds-tx-dab { background: #ede9fe; } .ds-tx-info { flex: 1; min-width: 0; } .ds-tx-name { font-size: 15px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-tx-date { font-size: 12px; color: #64748b; margin-top: 3px; } .ds-tx-amount { font-size: 16px; font-weight: 700; flex-shrink: 0; } .ds-tx-amount.ds-tx-dep { color: #ef4444; } .ds-tx-amount.ds-tx-rev { color: #16a34a; } .ds-tx-amount.ds-tx-dab { color: #7c3aed; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Tableau de Bord Intime",
+    "overview": "Budget Rombhot est une app qui traite l'argent comme quelque chose de personnel, pas de corporate. La densité est fonctionnelle : chaque pixel sert la rapidité de saisie ou la lisibilité du bilan. Le design ne cherche pas à impressionner un utilisateur inconnu — il cherche à servir Edhem et Dhouha, deux personnes réelles qui ouvrent cette app plusieurs fois par jour, souvent debout, une main occupée.\n\nL'interface accepte sa nature d'outil quotidien. Les grandes cartes de bilan (bleu, violet) portent l'information critique d'un coup d'œil. Le reste — transactions, catégories, réglages — est sobre, structuré, sans ornement. La chaleur vient des couleurs sémantiques et des identités par utilisateur.\n\nCe que ce système rejette : les interfaces bancaires froides, les apps de comptabilité surchargées, le SaaS générique gris-bleu.",
+    "keyCharacteristics": [
+      "Mobile-natif : touch targets généreux, navigation par le pouce, modal slide-up",
+      "Sémantique par couleur : chaque couleur a un rôle fonctionnel strict, jamais décoratif",
+      "Hiérarchie par contraste : les chiffres importants sont gros et gras, le reste recule",
+      "Identités distinctes : bleu = Edhem, rose = Dhouha, violet = espèces",
+      "Ombres présentes mais discrètes : la profondeur vient de la séparation fond/carte"
+    ],
+    "rules": [
+      { "name": "La Règle du Sens Unique", "body": "Chaque couleur a un rôle sémantique exclusif. Le bleu signifie action ou Edhem. Le violet signifie espèces. Le rose signifie Dhouha. Utiliser le violet comme couleur décorative est interdit.", "section": "colors" },
+      { "name": "La Règle du Flat-par-Défaut", "body": "Seuls les éléments flottants (cartes, nav fixe) ont une ombre. Les boutons, inputs, et éléments inline sont plats au repos.", "section": "elevation" },
+      { "name": "La Règle du Poids Seul", "body": "La hiérarchie se crée par le poids (400→600→700→800) et la taille. Pas par des familles de fontes différentes.", "section": "typography" }
+    ],
+    "dos": [
+      "Do utiliser le plein-écran pour les boutons d'action primaires sur mobile.",
+      "Do respecter le code couleur sémantique strict : rouge = dépense, vert = revenu, violet = espèces, bleu = action/Edhem, rose = Dhouha.",
+      "Do tinter les fonds des icônes de transaction avec la couleur-light correspondante.",
+      "Do utiliser font-size ≥ 16px sur tous les inputs pour éviter le zoom automatique iOS.",
+      "Do dimensionner tous les touch targets à ≥ 44px.",
+      "Do faire primer la lisibilité des chiffres : solde en display 36px/800."
+    ],
+    "donts": [
+      "Don't utiliser les couleurs à des fins décoratives — violet = espèces, point.",
+      "Don't ajouter des ombres sur les boutons, inputs, ou éléments inline.",
+      "Don't créer des menus à plusieurs niveaux ou des écrans de configuration complexes.",
+      "Don't utiliser un ton visuel froid ou institutionnel.",
+      "Don't mettre du texte blanc sur un fond bleu-clair (#dbeafe).",
+      "Don't utiliser border-left coloré comme accent de liste.",
+      "Don't utiliser #000 ou #fff pur.",
+      "Don't ajouter des animations décoratives (bounce, spring, parallax)."
+    ]
+  }
+}
