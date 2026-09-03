@@ -189,6 +189,10 @@
   .cash-row .cash-item .cl { font-size: 11px; opacity: 0.75; margin-top: 2px; }
   .cash-row .cash-div { width: 1px; background: rgba(255,255,255,0.25); margin: 0 6px; }
 
+  /* ---- ÉPARGNE CARD ---- */
+  .epargne-card { background: linear-gradient(135deg, #92400e, #d97706); }
+  .epargne-card .cash-badge.negatif { background: rgba(127,29,29,0.35); }
+
   /* ---- PROGRESS BAR ---- */
   .progress-row { margin-bottom: 10px; }
   .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -506,6 +510,8 @@
     </div>
   </div>
 
+  <div id="epargneCard" style="display:none;"></div>
+
   <div id="cashCard" style="display:none;"></div>
 
   <div class="card">
@@ -542,6 +548,13 @@
     <span class="name">Salaire</span>
     <input type="number" id="p-salaire" placeholder="ex: 4000" onchange="saveParams()">
   </div>
+
+  <div class="section-label">Épargne</div>
+  <div class="param-row">
+    <span class="name">Épargne initiale</span>
+    <input type="number" id="p-epargne" placeholder="ex: 1000" onchange="saveParams()">
+  </div>
+  <div id="epargne-hint" style="font-size:12px;color:var(--muted);padding:0 4px;margin-bottom:8px;"></div>
 
   <div class="section-label">Dépenses fixes</div>
   <div id="fixed-params"></div>
@@ -1516,8 +1529,30 @@ async function saveParams() {
     const el = document.getElementById('fp-'+f.id);
     if (el) params[f.id] = parseFloat(el.value) || 0;
   });
+
+  // Épargne initiale : n'active le suivi que la première fois qu'un montant est saisi
+  const epEl = document.getElementById('p-epargne');
+  let epargneKeysToDelete = [];
+  if (epEl) {
+    const raw = epEl.value.trim();
+    if (raw === '') {
+      if (params.epargne_initiale != null) epargneKeysToDelete = ['epargne_initiale','epargne_start_year','epargne_start_month'];
+      delete params.epargne_initiale;
+      delete params.epargne_start_year;
+      delete params.epargne_start_month;
+    } else {
+      params.epargne_initiale = parseFloat(raw) || 0;
+      if (params.epargne_start_year == null) {
+        const today = new Date();
+        params.epargne_start_year  = today.getFullYear();
+        params.epargne_start_month = today.getMonth();
+      }
+    }
+  }
+
   localStorage.setItem('rombhot_params', JSON.stringify(params));
   renderResumePage();
+  renderParamsPage();
   showToast('Paramètres sauvegardés');
 
   if (isConfigured() && db) {
@@ -1526,6 +1561,7 @@ async function saveParams() {
       db.from('params').upsert(rows).then(({ error }) => {
         if (error) queueOp({ action:'upsert', table:'params', data: rows });
       });
+      if (epargneKeysToDelete.length) db.from('params').delete().in('key', epargneKeysToDelete);
     } else {
       queueOp({ action:'upsert', table:'params', data: rows });
     }
@@ -1554,6 +1590,118 @@ function getCatLabel(id) {
 function getCatIcon(id) {
   if (id === 'dab') return '🏧';
   return [...CATEGORIES_DEP, ...CATEGORIES_REV].find(x => x.id === id)?.icon || '💸';
+}
+
+// =============================================
+// ÉPARGNE
+// =============================================
+
+// La dépense fixe personnalisée "Epargne" est un virement vers l'épargne, pas une
+// dépense perdue : on l'exclut des dépenses fixes et on l'ajoute comme versement direct.
+function normLabel(s) { return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase(); }
+function getEpargneVersement() {
+  const item = customFixed.find(f => normLabel(f.label) === 'epargne');
+  return item ? (+item.amount || 0) : 0;
+}
+function getFixedTotalSansEpargne() {
+  return FIXED_DEF.reduce((s,f) => s+(params[f.id]||0), 0)
+       + customFixed.reduce((s,f) => s + (normLabel(f.label) === 'epargne' ? 0 : (+f.amount||0)), 0);
+}
+
+// Croissance de l'épargne (revenus - dépenses hors ligne "Epargne" + versement "Epargne") cumulée
+// sur `nbMois` mois consécutifs à partir de (refYear, refMonth).
+async function sumSoldeRange(refYear, refMonth, nbMois) {
+  const constantSoldePerMonth = (params.salaire || 0) - getFixedTotalSansEpargne() + getEpargneVersement();
+
+  const startKey = refYear*12 + refMonth;
+  const endKey   = startKey + nbMois - 1;
+  const endYear  = Math.floor(endKey/12);
+
+  let soldeVariable = 0;
+  const addTx = t => {
+    const k = t.year*12 + t.month;
+    if (k < startKey || k > endKey) return;
+    if (t.type === 'revenu') soldeVariable += t.amount;
+    else if (t.type === 'depense' && !t.cash) soldeVariable -= t.amount;
+    else if (t.type === 'retrait_dab') soldeVariable -= t.amount;
+  };
+
+  if (isConfigured() && db && isOnline) {
+    try {
+      const { data, error } = await db.from('transactions')
+        .select('type,cash,amount,year,month')
+        .gte('year', refYear)
+        .lte('year', endYear);
+      if (error) throw error;
+      (data || []).forEach(addTx);
+    } catch(e) {
+      // Hors-ligne / erreur réseau : on retombe sur le cache local (mois déjà visités uniquement)
+      for (let k = startKey; k <= endKey; k++) {
+        const y = Math.floor(k/12), m = k%12;
+        (transactions[`${y}-${m}`] || []).forEach(addTx);
+      }
+    }
+  } else {
+    for (let k = startKey; k <= endKey; k++) {
+      const y = Math.floor(k/12), m = k%12;
+      (transactions[`${y}-${m}`] || []).forEach(addTx);
+    }
+  }
+
+  return constantSoldePerMonth * nbMois + soldeVariable;
+}
+
+async function renderEpargneCard() {
+  const card = document.getElementById('epargneCard');
+  if (!card) return;
+
+  if (params.epargne_initiale == null || params.epargne_start_year == null) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const refYear  = Math.round(params.epargne_start_year);
+  const refMonth = Math.round(params.epargne_start_month);
+  const refKey   = refYear*12 + refMonth;
+  const curKey   = currentYear*12 + currentMonth;
+
+  if (curKey < refKey) {
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div class="cash-card epargne-card">
+        <div class="cash-title">Épargne</div>
+        <div style="font-size:14px;opacity:0.85;margin-top:6px;">Suivi à partir de ${MONTHS[refMonth]} ${refYear}</div>
+      </div>`;
+    return;
+  }
+
+  // Croissance épargne du mois affiché = revenus - dépenses (hors ligne "Epargne") + versement "Epargne"
+  const txs = getTxs();
+  const totalRevVar = txs.filter(t => t.type === 'revenu').reduce((s,t) => s+t.amount, 0);
+  const nonCashDep  = txs.filter(t => t.type === 'depense' && !t.cash).reduce((s,t) => s+t.amount, 0);
+  const totalDAB    = txs.filter(t => t.type === 'retrait_dab').reduce((s,t) => s+t.amount, 0);
+  const soldeMoisEpargne = (params.salaire||0) + totalRevVar - getFixedTotalSansEpargne() - nonCashDep - totalDAB + getEpargneVersement();
+
+  const soldeAvant = curKey > refKey ? await sumSoldeRange(refYear, refMonth, curKey - refKey) : 0;
+
+  // Le mois affiché a pu changer pendant l'attente de la requête : on abandonne si c'est le cas
+  if (currentYear*12 + currentMonth !== curKey) return;
+
+  const epargneActuelle = params.epargne_initiale + soldeAvant + soldeMoisEpargne;
+
+  card.style.display = 'block';
+  card.innerHTML = `
+    <div class="cash-card epargne-card">
+      <div class="cash-header">
+        <div>
+          <div class="cash-title">Épargne</div>
+          <div class="cash-total">${fmt(epargneActuelle)}</div>
+        </div>
+        <div class="cash-badge${soldeMoisEpargne < 0 ? ' negatif' : ''}">
+          ${soldeMoisEpargne >= 0 ? '↑' : '↓'} ${(soldeMoisEpargne >= 0 ? '+' : '')}${fmt(soldeMoisEpargne)} ce mois
+        </div>
+      </div>
+    </div>`;
 }
 
 // =============================================
@@ -1592,6 +1740,8 @@ function renderResumePage() {
   setValueAnimated('soldeAmount', (solde >= 0 ? '+' : '') + fmt(solde));
   setValueAnimated('tauxEpargne', taux + '%');
   document.getElementById('bilanCard').className = 'bilan-card ' + (solde >= 0 ? 'positif' : 'negatif');
+
+  renderEpargneCard();
 
   // Enveloppe espèces
   const cashCardEl = document.getElementById('cashCard');
@@ -1717,6 +1867,16 @@ function renderHistPage() {
 // =============================================
 function renderParamsPage() {
   document.getElementById('p-salaire').value = params.salaire || '';
+
+  const epEl = document.getElementById('p-epargne');
+  if (epEl) epEl.value = params.epargne_initiale ?? '';
+  const hint = document.getElementById('epargne-hint');
+  if (hint) {
+    hint.textContent = (params.epargne_start_year != null)
+      ? `Suivie depuis ${MONTHS[Math.round(params.epargne_start_month)]} ${Math.round(params.epargne_start_year)}`
+      : 'Saisis ton solde d\'épargne actuel pour activer le suivi mensuel.';
+  }
+
   document.getElementById('fixed-params').innerHTML = FIXED_DEF.map(f => `
     <div class="param-row">
       <span class="name">${f.label}</span>
