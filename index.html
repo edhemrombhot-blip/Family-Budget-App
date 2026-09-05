@@ -47,6 +47,40 @@
     overflow-x: hidden;
   }
 
+  /* ---- ÉCRAN LOGIN ---- */
+  .login-screen {
+    position: fixed; inset: 0; background: linear-gradient(160deg, #0f172a, #1e3a8a);
+    z-index: 10000; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 28px; gap: 20px; text-align: center;
+  }
+  .login-screen.hidden { display: none; }
+  .login-logo { font-size: 60px; line-height: 1; }
+  .login-screen h2 { color: white; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .login-screen p { color: rgba(255,255,255,0.55); font-size: 15px; }
+  .login-form { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+  .login-input {
+    width: 100%; padding: 16px 18px; border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 14px; font-size: 17px; text-align: center; letter-spacing: 2px;
+    background: rgba(255,255,255,0.08); color: white; outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .login-input::placeholder { color: rgba(255,255,255,0.35); letter-spacing: normal; }
+  .login-input:focus { border-color: #2563eb; }
+  .login-btn {
+    width: 100%; padding: 16px; background: #2563eb; color: white;
+    border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s, transform 0.12s var(--ease-out-quart);
+  }
+  .login-btn:active { opacity: 0.88; transform: scale(0.97); }
+  .login-error { color: #fca5a5; font-size: 13px; font-weight: 600; min-height: 16px; }
+  .login-form.shake { animation: loginShake 0.4s var(--ease-out-quart); }
+  @keyframes loginShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+
   /* ---- ÉCRAN SÉLECTION UTILISATEUR ---- */
   .user-screen {
     position: fixed; inset: 0; background: linear-gradient(160deg, #0f172a, #1e3a8a);
@@ -453,6 +487,27 @@
 </head>
 <body>
 
+<!-- ÉCRAN LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-logo">💰</div>
+  <h2>Budget Rombhot</h2>
+  <p>Application privée — entre le mot de passe familial</p>
+  <form class="login-form" id="loginForm" onsubmit="return handleLogin(event)">
+    <input type="password" class="login-input" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password" autofocus>
+    <div class="login-error" id="loginError"></div>
+    <button type="submit" class="login-btn">Entrer</button>
+  </form>
+</div>
+<script>
+  (function() {
+    try {
+      if (localStorage.getItem('rombhot_auth') === '1') {
+        document.getElementById('loginScreen').classList.add('hidden');
+      }
+    } catch(e) {}
+  })();
+</script>
+
 <!-- ÉCRAN SÉLECTION UTILISATEUR -->
 <div id="userScreen" class="user-screen">
   <div class="user-screen-logo">💰</div>
@@ -571,6 +626,9 @@
   <button class="btn-ghost" onclick="showUserScreen()">
     🔄 &nbsp;Changer d'utilisateur
   </button>
+  <button class="btn-ghost" onclick="logout()">
+    🔒 &nbsp;Verrouiller l'application
+  </button>
 
   <div style="margin-top:28px; text-align:center;">
     <button onclick="if(confirm('Effacer toutes les données locales (Supabase non affecté) ?')) { localStorage.clear(); location.reload(); }"
@@ -681,6 +739,35 @@
 // =============================================
 const SUPABASE_URL  = 'VOTRE_URL_SUPABASE';   // ex: https://xxxxx.supabase.co
 const SUPABASE_ANON = 'VOTRE_CLE_ANON';        // ex: eyJhbGciOiJI...
+const APP_PASSWORD  = 'VOTRE_MOT_DE_PASSE';    // mot de passe familial partagé
+
+// =============================================
+// LOGIN
+// =============================================
+function handleLogin(event) {
+  event.preventDefault();
+  const input = document.getElementById('loginPassword');
+  if (input.value === APP_PASSWORD) {
+    try { localStorage.setItem('rombhot_auth', '1'); } catch(e) {}
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('loginError').textContent = '';
+    input.value = '';
+  } else {
+    document.getElementById('loginError').textContent = 'Mot de passe incorrect';
+    const form = document.getElementById('loginForm');
+    form.classList.remove('shake');
+    void form.offsetWidth; // force reflow pour rejouer l'animation
+    form.classList.add('shake');
+    input.value = '';
+    input.focus();
+  }
+  return false;
+}
+
+function logout() {
+  try { localStorage.removeItem('rombhot_auth'); } catch(e) {}
+  location.reload();
+}
 
 // =============================================
 // CLIENT

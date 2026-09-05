@@ -17,9 +17,15 @@ if (fs.existsSync(envFile)) {
 
 const SUPABASE_URL  = process.env.SUPABASE_URL  || '';
 const SUPABASE_ANON = process.env.SUPABASE_ANON || '';
+const APP_PASSWORD  = process.env.APP_PASSWORD  || '';
 
 if (!SUPABASE_URL || SUPABASE_URL === 'VOTRE_URL_SUPABASE') {
   console.error('ERREUR : SUPABASE_URL non défini dans .env ou variables Vercel');
+  process.exit(1);
+}
+
+if (!APP_PASSWORD || APP_PASSWORD === 'VOTRE_MOT_DE_PASSE') {
+  console.error('ERREUR : APP_PASSWORD non défini dans .env ou variables Vercel');
   process.exit(1);
 }
 
@@ -31,6 +37,7 @@ if (!fs.existsSync(dist)) fs.mkdirSync(dist);
 let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
 html = html.replace("'VOTRE_URL_SUPABASE'",  `'${SUPABASE_URL}'`);
 html = html.replace("'VOTRE_CLE_ANON'",       `'${SUPABASE_ANON}'`);
+html = html.replace("'VOTRE_MOT_DE_PASSE'",   `'${APP_PASSWORD}'`);
 fs.writeFileSync(path.join(dist, 'index.html'), html);
 
 // Copie les fichiers statiques
